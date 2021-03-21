@@ -1,0 +1,218 @@
+---
+title: "htwbd00_20160192조은정"
+output: html_document
+---
+# WK02 Data Exploration
+
+
+```{R}
+
+
+suppressWarnings(suppressMessages(library(tidyverse)))
+library(gridExtra)
+```
+
+```{R}
+library(scales)
+library(skimr)
+library(naniar)
+library(corrplot)
+```
+
+```{R}
+DF <- as.data.frame(read_csv('htwtbd00.csv'))
+```
+
+```{R}
+head(DF)
+dim(DF)
+str(DF)
+```
+
+```{R}
+DF <- mutate(DF,
+age = 2021-byr,
+gnd = factor(gnd),
+bd = factor(bd),
+a= factor(a) )
+sapply(DF, class)
+```
+
+```{R}
+skim(DF)
+```
+
+```{R}
+naniar::vis_miss(DF)
+```
+
+```{R}
+naniar::miss_var_summary(DF)
+```
+
+```{R}
+sum(complete.cases(DF))/nrow(DF)*100
+```
+
+```{R}
+summary(DF)
+```
+```{R}
+summarize_if(DF, is.numeric, list(mn=mean, sd=sd), na.rm=TRUE)
+```
+
+
+```{R}
+summarize_at(DF, c('ht','wt'), list(mn=mean, sd=sd), na.rm=TRUE)
+```
+
+```{R}
+DF%>% dplyr::select_if(is.numeric) %>% skim()
+```
+
+```{R}
+g1 <- ggplot(DF, aes(x=ht)) + geom_density() + geom_rug()
+g2 <- ggplot(DF, aes(x=ht)) + geom_histogram(color ='black' , fill ='white')
+g3 <- ggplot( DF, aes(x=ht)) + geom_histogram(aes(y=..density..), color='black', fill ='white') + geom_density(alpha=0.2, fill= '#FF6666') + geom_rug()
+g4 <- ggplot(DF, aes(x=ht)) + geom_boxplot() 
+grid.arrange(g1, g2, g3, g4, nrow=2, ncol=2)
+```
+
+```{R}
+DF%>% dplyr::select_if(is.factor) %>% skim()
+```
+
+```{R}
+table(DF$gnd)
+```
+
+```{R}
+xtabs(~bd, data=DF)
+```
+
+```{R}
+xtabs(~a, data=DF)
+```
+
+```{R}
+g1 <- ggplot(DF, aes(x=gnd)) + geom_bar() 
+g2 <- ggplot(DF, aes(x=gnd)) + geom_bar(aes(y=..count../sum(..count..))) + scale_y_continuous( labels=percent) 
+g3 <- ggplot(DF, aes(x=bd)) + geom_bar() 
+g4 <- ggplot(DF, aes(x=bd)) + geom_bar(aes(y=..count../sum(..count..))) + scale_y_continuous( labels=percent) 
+grid.arrange( grobs =list (g1, g2, g3, g4), nrow=2, nco1=2)
+```
+
+```{R}
+DF %>% group_by(gnd) %>% dplyr::select_if(is.numeric) %>% skim()
+```
+
+```{R}
+DF %>%
+group_by(gnd) %>%
+summarize_at(c('ht' ,'wt'), list(mn=mean , sd=sd), na.rm=TRUE)
+
+```
+
+```{R}
+DF %>%
+group_by(gnd) %>%
+summarize_if( is.numeric, list(mn=mean, sd=sd), na.rm=TRUE)
+
+```
+
+```{R}
+g1 <- ggplot(DF, aes(x=ht, col=gnd, fill=gnd)) + geom_density(alpha=0.5) 
+g2 <- ggplot(DF, aes(x=ht, col=gnd, fill=gnd)) + geom_histogram(alpha=0.5) 
+g3 <- ggplot(DF, aes(x=ht)) + geom_histogram() + facet_grid(gnd~.)
+g4 <- ggplot(DF, aes(x=gnd, y=ht)) + geom_boxplot() + coord_flip()
+grid.arrange(grobs =list(g1, g2, g3, g4), nrow=2, nco1=2)
+
+```
+
+```{R}
+t.test(ht~gnd, data=DF, var.equal=TRUE)
+```
+
+```{R}
+summary(aov(ht~bd, data=DF))
+```
+
+```{R}
+R <- cor(DF%>% select_if(is.numeric), use='pairwise.complete.obs')
+R
+
+```
+
+```{R}
+sort(R['ht',], decreasing=TRUE)
+```
+
+```{R}
+g1 <- ggplot(DF, aes(x=ftln, y=ht)) + geom_point(alpha=0.5)
+g2 <- ggplot(DF, aes(x=ftln, y=ht, color=gnd, shape=gnd)) + geom_point(alpha=0.5) 
+g3 <- ggplot(DF, aes(x=bd, y=ht, color=gnd, shape=gnd)) + geom_point(alpha=0.5) 
+g4 <- ggplot(DF, aes(x=bd, y=ht, color=gnd, shape=gnd)) + geom_jitter(alpha=0.5) 
+grid.arrange(grobs = list(g1, g2, g3, g4), nrow=2, nco1=2)
+
+```
+
+```{R}
+corrplot::corrplot.mixed(R, upper= 'ellipse', order='FPC')	
+```
+
+
+```{R}
+library(GGally) 
+```
+
+```{R}
+ggcorr(DF%>% select_if(is.numeric), geom = 'tile', label=TRUE)
+
+```
+
+```{R}
+ggpairs(DF, columns = c('ht','ftln','wt'), lower=list(continuous=wrap('points', alpha=0.05, col ='blue' )), diag =list(continuous='barDiag'))
+```
+
+```{R}
+ggplot(DF, aes(x=wt , y=ht))+geom_density2d()+geom_point(aes(col=gnd, shape=gnd))
+```
+
+```{R}
+g1 <- ggplot(DF, aes(x=bd, fill=gnd)) + geom_bar()
+g2 <- ggplot(DF, aes(x=bd, fill=gnd)) + geom_bar(aes(y=..count../sum(..count..)))
+
+
+tb <- table(DF$gnd, DF$bd)
+tb <- xtabs(~bd+gnd, data=DF) 
+df <- data.frame(tb)
+df
+
+```
+
+```{R}
+g3 <- ggplot(df, aes(x=gnd, y=Freq)) + geom_bar(aes(fill=bd), stat='identity')
+
+
+tb <- prop.table(xtabs(~gnd+bd, data=DF), 1)
+tb
+
+```
+
+```{R}
+df <- data.frame(tb) 
+df
+```
+
+```{R}
+g4 <- ggplot(df, aes(x=gnd, y=Freq)) + geom_bar(aes(fill=bd) , stat='identity')
+
+grid.arrange(grobs= list(g1, g2, g3, g4), nrow=2, nco1=2)
+
+```
+
+```{R}
+chisq.test(xtabs(~gnd+bd, data=DF), correct=FALSE)
+```
+
+
